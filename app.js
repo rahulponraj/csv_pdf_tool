@@ -6,8 +6,8 @@ const app = express();
 
 
 // MongoDB setup
-mongoose.connect("mongodb://127.0.0.1:27017/pdftool",{
-    useNewUrlParser:true,
+mongoose.connect("mongodb://127.0.0.1:27017/pdftool", {
+  useNewUrlParser: true,
 })
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
@@ -38,5 +38,5 @@ app.post('/upload', upload.fields([{ name: 'csv', maxCount: 1 }, { name: 'pdf', 
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`); 
+  console.log(`Server is running on port ${PORT}`);
 });

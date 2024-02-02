@@ -65,7 +65,7 @@ const updateStatusToProcessed = async (userId, updatedPdfPath) => {
     throw error;
   }
 };
-const updateUserPdfPath = async (userId, pdfPath) => { 
+const updateUserPdfPath = async (userId, pdfPath) => {
   try {
     const user = await User.findByIdAndUpdate(userId, { pdfPath });
     console.log(`PDF Path updated for user ID ${userId}: ${pdfPath}`);

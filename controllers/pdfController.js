@@ -34,7 +34,7 @@ const generatePDFs = async (userList) => {
       // Create a new page if needed
       if (pdfDoc.getPages().length === 0) {
         pdfDoc.addPage();
-      } 
+      }
 
       const page = pdfDoc.getPages()[0];
       const { width, height } = page.getSize();

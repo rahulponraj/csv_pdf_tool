@@ -12,7 +12,7 @@ const handleFileUpload = async (req, res) => {
     const csvFile = req.files['csv'] ? req.files['csv'][0] : null;
     const pdfFile = req.files['pdf'] ? req.files['pdf'][0] : null;
 
-    if (!csvFile || !pdfFile) { 
+    if (!csvFile || !pdfFile) {
       return res.status(400).json({ success: false, error: 'CSV and PDF files are required.' });
     }
 
