@@ -9,6 +9,6 @@ the database will get updated.
 it is not accessible. The reason for this I checked the pdf which has been converting base64 code encoding and decoding. The encoded pdf format is wrong I checked the base64 code in online compilers
 it shows it's not a valid code.
 6. The overall project walkthrough is -- after uploading the files, it will be in the uploads directory, and after generating the new updated pdf will also be there in the same.
-The sample files are there in the uploads directory PLEASE CHECK.
+The sample files are there in the uploads directory PLEASE CHECK. In case of error saving files please delete files in the uploads directory or use new filename.
 
 <----------------------------------->
