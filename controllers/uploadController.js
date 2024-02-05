@@ -5,6 +5,10 @@ const { parseCSVAndStoreInDatabase } = require('./databaseController');
 const { generatePDFs } = require('./pdfController');
 const { generatePreview } = require('./previewController');
 
+
+
+// controllers/uploadController.js
+
 const handleFileUpload = async (req, res) => {
   try {
     console.log('File upload started...');
@@ -24,14 +28,18 @@ const handleFileUpload = async (req, res) => {
     console.log('CSV parsing and storing in the database done.');
 
     console.log('Checking csvData length:', csvData.length);
+    console.log('CSV Data Type:', typeof csvData);
+console.log('CSV Data Length:', csvData.length);
 
 
     // Generate PDFs for each user in the database
-    console.log('Generating PDFs...');
-
-    console.log(`CSV Data Length: ${csvData.length}`);
-    await generatePDFs(csvData);
-    console.log('PDFs generated successfully.');
+    try {
+      console.log('Generating PDFs...');
+      await generatePDFs(csvData);
+      console.log('PDFs generated successfully.');
+    } catch (error) {
+      console.error('Error generating PDFs:', error);
+    }
 
     // Generate PDF previews
     console.log('Generating PDF previews...');
@@ -59,5 +67,5 @@ const handleFileUpload = async (req, res) => {
     res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 };
-
+ 
 module.exports = { handleFileUpload };

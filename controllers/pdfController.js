@@ -5,6 +5,9 @@ const { updateStatusToProcessed, updateUserPdfPath } = require('./databaseContro
 const generatePDFs = async (userList) => {
   console.log('Entering generatePDFs');
   console.log('User List:', userList);
+  console.log('User List Type:', typeof userList);
+console.log('User List Length:', userList.length);
+
   for (const user of userList) {
     try {
       console.log(`Processing user ID ${user._id}`);
@@ -58,7 +61,7 @@ const generatePDFs = async (userList) => {
       // Consider how you want to handle errors
     }
   }
-
+  console.log('User List after:', userList);
   console.log('Exiting generatePDFs');
 };
 
