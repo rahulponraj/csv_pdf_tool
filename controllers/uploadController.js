@@ -23,8 +23,12 @@ const handleFileUpload = async (req, res) => {
 
     console.log('CSV parsing and storing in the database done.');
 
+    console.log('Checking csvData length:', csvData.length);
+
+
     // Generate PDFs for each user in the database
     console.log('Generating PDFs...');
+
     console.log(`CSV Data Length: ${csvData.length}`);
     await generatePDFs(csvData);
     console.log('PDFs generated successfully.');

@@ -4,7 +4,7 @@ const { updateStatusToProcessed, updateUserPdfPath } = require('./databaseContro
 
 const generatePDFs = async (userList) => {
   console.log('Entering generatePDFs');
-
+  console.log('User List:', userList);
   for (const user of userList) {
     try {
       console.log(`Processing user ID ${user._id}`);

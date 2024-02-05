@@ -48,6 +48,7 @@ const parseCSVAndStoreInDatabase = async (csvFilePath) => {
 
     console.log('CSV parsing and storing in the database done.');
     console.log('Final Parsed Results:', results);
+    console.log('Returning results:', results); 
     return results;
 
   } catch (error) {
