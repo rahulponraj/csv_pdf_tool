@@ -13,44 +13,40 @@ const parseCSVAndStoreInDatabase = async (csvFilePath) => {
 
     const results = [];
 
-    const stream = fs.createReadStream(csvFilePath);
-
-    stream
-      .pipe(csvParser())
-      .on('data', async (data) => {
-        console.log('CSV Data:', data);
-
-        try {
-          const user = new User({
-            name: data.name,
-            mobileNumber: data.mobileNumber,
-            status: 'pending',
-          });
-
-          await user.save();
-          results.push(user);
-          console.log('User saved:', user);
-        } catch (error) {
-          console.error('Error saving user to the database:', error);
-        }
-      })
-      .on('end', () => {
-        console.log('CSV parsing done');
-        console.log('Parsed Results:', results);
-      })
-      .on('error', (error) => {
-        console.error('Error parsing CSV:', error);
-      });
-
-    await new Promise((resolve) => {
-      stream.on('close', resolve);
+    // Use promisified csv-parser
+    const csvRows = await new Promise((resolve, reject) => {
+      const rows = [];
+      fs.createReadStream(csvFilePath)
+        .pipe(csvParser())
+        .on('data', (data) => {
+          console.log('CSV Data:', data);
+          rows.push(data);
+        })
+        .on('end', () => resolve(rows))
+        .on('error', reject);
     });
+
+    // Process each row
+    for (const data of csvRows) {
+      try {
+        const user = new User({
+          name: data.name,
+          mobileNumber: data.mobileNumber,
+          status: 'pending',
+        });
+
+        await user.save();
+        results.push(user);
+        console.log('User saved:', user);
+      } catch (error) {
+        console.error('Error saving user to the database:', error);
+      }
+    }
 
     console.log('CSV parsing and storing in the database done.');
     console.log('Final Parsed Results:', results);
-    console.log('Returning results:', results); 
+    console.log('Returning results:', results);
     return results;
-
   } catch (error) {
     console.error('Error parsing CSV and storing in the database:', error);
     throw error;
