@@ -1,5 +1,5 @@
 <-------Please Read This --------->
-1. The project can be run using npx nodemon app.js or node app.js.
+1. The project can be run using npx nodemon app.js or node app.js. It will be on the http://localhost:3000/
 2. The proper channeling of the project running is consoled. So the way of traveling is mentioned in the console.
 3. bug no1 is - The pdf is generating with the csv data but not with the uploaded template. I have coded in the sense that if is there any error create a new pdf. The path of the 
 previously uploaded template is not been recognized.
