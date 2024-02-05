@@ -6,7 +6,7 @@ const app = express();
 
 
 // MongoDB setup
-mongoose.connect("mongodb://127.0.0.1:27017/pdftool", {
+mongoose.connect("mongodb+srv://rahulponraj:secretmongo@cluster0.rdefuhv.mongodb.net/", {
   useNewUrlParser: true,
 })
 const db = mongoose.connection;
