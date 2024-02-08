@@ -1,67 +1,74 @@
 const fs = require('fs').promises;
-const { PDFDocument } = require('pdf-lib');
-const { updateStatusToProcessed, updateUserPdfPath } = require('./databaseController');
+const path = require('path');
+const { PDFDocument, rgb } = require('pdf-lib');
+const { updateStatusToProcessed } = require('./databaseController');
+const Pdf = require('../models/Pdf');
 
 const generatePDFs = async (userList) => {
   console.log('Entering generatePDFs');
   console.log('User List:', userList);
   console.log('User List Type:', typeof userList);
-console.log('User List Length:', userList.length);
+  console.log('User List Length:', userList.length);
 
-  for (const user of userList) {
-    try {
-      console.log(`Processing user ID ${user._id}`);
-
-      // Set the correct PDF path for the user
-      const pdfPath = `uploads/${user._id}.pdf`;
-      console.log(`PDF file path: ${pdfPath}`);
-
-      // Check if the directory exists, create if not
-      const dirExists = await fs.access('uploads').then(() => true).catch(() => false);
-      if (!dirExists) {
-        await fs.mkdir('uploads');
-      }
-
-      let pdfDoc;
-      try {
-        // Load the existing PDF file 
-        const pdfBuffer = await fs.readFile(pdfPath);
-        pdfDoc = await PDFDocument.load(pdfBuffer);
-        console.log(`Loaded existing PDF for user ID ${user._id}`);
-      } catch (loadError) {
-        // If the file doesn't exist, create a new PDF
-        console.log(`Creating a new PDF for user ID ${user._id}`);
-        pdfDoc = await PDFDocument.create();
-      }
-
-      // Create a new page if needed
-      if (pdfDoc.getPages().length === 0) {
-        pdfDoc.addPage();
-      }
-
-      const page = pdfDoc.getPages()[0];
-      const { width, height } = page.getSize();
-      const { name, mobileNumber, _id } = user;
-
-      // Customize the PDF template with user data
-      page.drawText(`Name: ${name}`, { x: 50, y: height - 100 });
-      page.drawText(`Mobile Number: ${mobileNumber}`, { x: 50, y: height - 120 });
-
-      // Save the updated PDF
-      await fs.writeFile(pdfPath, await pdfDoc.save());
-
-      // Update user status to 'processed' and store the path
-      await updateStatusToProcessed(_id, pdfPath);
-      console.log(`Updated PDF for user ID ${_id}: ${pdfPath}`);
-      console.log(`Checking if PDF file exists: ${await fs.access(pdfPath).then(() => 'Exists').catch(() => 'Does not exist')}`);
-
-      console.log(`Processed user ID ${user._id}`);
-    } catch (error) {
-      console.error(`Error processing user ID ${user._id}:`, error.stack);
-      // Consider how you want to handle errors
+  try {
+    // Fetch the general PDF template from the database based on the upload date (assuming you want the latest)
+    const generalPdf = await Pdf.findOne().sort({ uploadDate: -1 });
+    if (!generalPdf) {
+      console.error('No general PDF template found');
+      return; // Stop processing if no general PDF template is found
     }
+
+    // Create a directory named "generated_pdfs" if it doesn't exist
+    const generatedPdfDir = path.join(__dirname, '..', 'generated_pdfs');
+    await fs.mkdir(generatedPdfDir, { recursive: true });
+
+    // Loop through userList and generate PDF for each user using the general PDF template...
+    for (const user of userList) {
+      try {
+        console.log(`Processing user ID ${user._id}`);
+
+        // Load the general PDF template for each user
+        const pdfBuffer = await fs.readFile(generalPdf.filePath);
+        const pdfDoc = await PDFDocument.load(pdfBuffer);
+
+        // Customize the PDF template with user data
+        const { name, mobileNumber, _id } = user;
+
+        // Find and fill the "Name" field
+        const nameField = pdfDoc.getForm().getTextField('Name');
+        if (nameField) {
+          nameField.setText(name);
+        } else {
+          console.error('Field "Name" not found in PDF');
+        }
+
+        // Find and fill the "Mobile Number" field
+        const mobileNumberField = pdfDoc.getForm().getTextField('Mobile Number');
+        if (mobileNumberField) {
+          mobileNumberField.setText(mobileNumber);
+        } else {
+          console.error('Field "Mobile Number" not found in PDF');
+        }
+
+        // Save the generated PDF in the "generated_pdfs" folder with a unique filename for each user
+        const userPdfPath = path.join(generatedPdfDir, `user_${_id}.pdf`);
+        await fs.writeFile(userPdfPath, await pdfDoc.save());
+
+        // Update user status to 'processed' and store the path
+        await updateStatusToProcessed(_id, userPdfPath);
+        console.log(`Generated PDF for user ID ${_id}: ${userPdfPath}`);
+
+        console.log(`Processed user ID ${user._id}`);
+      } catch (error) {
+        console.error(`Error processing user ID ${user._id}:`, error.stack);
+        // Consider how you want to handle errors
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching general PDF template:', error.stack);
+    // Consider how you want to handle errors
   }
-  console.log('User List after:', userList);
+
   console.log('Exiting generatePDFs');
 };
 

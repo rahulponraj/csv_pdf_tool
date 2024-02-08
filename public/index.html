@@ -95,11 +95,34 @@
     <button type="submit">Generate PDFs</button>
   </form>
 
-  <div id="pdfPreviews" class="pdfPreviews"></div>
-  <div id="pdfLinks"></div>
+  <div id="pdfPreviews"></div>
 
   <script>
-    document.getElementById('uploadForm').addEventListener('submit', async function (event) {
+    function displayPreviews(pdfUrls) {
+  if (pdfUrls && Array.isArray(pdfUrls)) {
+    const pdfPreviews = document.getElementById('pdfPreviews');
+
+    // Clear existing previews
+    pdfPreviews.innerHTML = '';
+
+    // Create an iframe for each PDF URL
+    pdfUrls.forEach(pdfUrl => {
+      const iframe = document.createElement('iframe');
+      iframe.src = pdfUrl;
+      iframe.classList.add('pdfPreview');
+      pdfPreviews.appendChild(iframe);
+    });
+  } else {
+    // If pdfUrls is undefined or not an array, display a message indicating no previews available
+    const pdfPreviews = document.getElementById('pdfPreviews');
+    const message = document.createElement('p');
+    message.textContent = 'No PDF previews available';
+    pdfPreviews.appendChild(message);
+  }
+}
+
+
+    document.getElementById('uploadForm').addEventListener('submit', async function(event) {
       event.preventDefault();
 
       const formData = new FormData(this);
@@ -116,7 +139,8 @@
         // Display success or handle errors
         if (data.success) {
           console.log('PDFs generated successfully');
-          displayPreviews(data.data.pdfPreviews);
+          displayPreviews(data.pdfUrls);
+          alert('PDFs generated successfully!');
         } else {
           console.error('Error:', data.error);
         }
@@ -124,48 +148,7 @@
         console.error('Fetch error:', error);
       }
     });
-
-    function displayPreviews(pdfPreviews) {
-      console.log('PDF Previews:', pdfPreviews);
-
-      const pdfPreviewsContainer = document.getElementById('pdfPreviews');
-      pdfPreviewsContainer.innerHTML = ''; // Clear previous previews
-
-      pdfPreviews.forEach((preview, index) => {
-        const pdfPreviewDiv = document.createElement('div');
-        pdfPreviewDiv.className = 'pdfPreview';
-
-        const embed = document.createElement('embed');
-        embed.src = `data:application/pdf;base64,${preview.preview}`;
-        embed.type = 'application/pdf';
-        embed.width = '100%';
-        embed.height = '100%';
-
-        pdfPreviewDiv.appendChild(embed);
-        pdfPreviewsContainer.appendChild(pdfPreviewDiv);
-      });
-    }
-    // function displayPreviews(pdfPreviews) {
-    //   const pdfLinksContainer = document.getElementById('pdfLinks');
-
-    //   pdfPreviews.forEach((preview) => {
-    //     const link = document.createElement('a');
-    //     link.href = `data:application/pdf;base64,${preview.preview}`;
-    //     link.target = '_blank'; // Open the PDF in a new tab/window
-    //     link.textContent = `Open PDF for user ID ${preview.userId}`;
-
-    //     const lineBreak = document.createElement('br');
-
-    //     pdfLinksContainer.appendChild(link);
-    //     pdfLinksContainer.appendChild(lineBreak);
-
-    //     // Log the link details for debugging
-    //     console.log(`Link created for user ID ${preview.userId}:`, link.href);
-    //   });
-    // }
   </script>
-  <!-- <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script> -->
-
 </body>
 
 </html>

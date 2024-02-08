@@ -1,38 +1,22 @@
-const fs = require('fs').promises;
-const { PDFDocument } = require('pdf-lib');
+const path = require('path');
+const fs = require('fs');
 
-const generatePreview = async (userList) => {
-  const previews = [];
+const generatePreview = async (req, res) => {
+  try {
+    // Assuming the generated PDFs are stored in the "generated_pdfs" folder
+    const generatedPdfDir = path.join(__dirname, '..', 'generated_pdfs');
+    const pdfFiles = await fs.promises.readdir(generatedPdfDir);
 
-  for (const user of userList) {
-    try {
-      const pdfPath = `uploads/${user._id}.pdf`;
+    // Generate an array of PDF preview URLs
+    const pdfPreviews = pdfFiles.map(pdfFile => {
+      return `/generated_pdfs/${pdfFile}`; // Assuming the server serves static files from the "generated_pdfs" folder
+    });
 
-      // Load the PDF directly from the file
-      const pdfBuffer = await fs.readFile(pdfPath);
-      console.log(`Loaded PDF Buffer for user ID ${user._id}`);
-      //console.log(`PDF Content for user ID ${user._id}:`, pdfBuffer.toString('utf8'));
-
-
-      const pdfDoc = await PDFDocument.load(pdfBuffer);
-      console.log(`PDF Document loaded for user ID ${user._id}`);
-      console.log('PDF Buffer length:', pdfBuffer.length);
-      // Generate a base64 preview
-      const previewBuffer = await pdfDoc.save();
-      console.log(`Saved PDF Buffer for user ID ${user._id}`);
-
-      // Convert the buffer to base64
-      const previewBase64 = previewBuffer.toString('base64');
-      console.log(`Generated preview for user ID ${user._id}`);
-
-      previews.push({ userId: user._id, preview: previewBase64 });
-      console.log(`PDF Buffer for user ID ${user._id}`);
-    } catch (error) {
-      console.error('Error generating preview for user ID:', user._id, error);
-    }
+    res.json({ success: true, data: { pdfPreviews } });
+  } catch (error) {
+    console.error('Error generating PDF preview:', error);
+    res.status(500).json({ success: false, error: 'Failed to generate PDF preview' });
   }
-
-  return previews;
 };
 
 module.exports = { generatePreview };

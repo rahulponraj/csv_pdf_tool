@@ -4,6 +4,8 @@ const fs = require('fs').promises; // Using fs.promises for async operations
 const { parseCSVAndStoreInDatabase } = require('./databaseController');
 const { generatePDFs } = require('./pdfController');
 const { generatePreview } = require('./previewController');
+const { savePdfToDatabase } = require('./databaseController');
+
 
 
 
@@ -29,7 +31,12 @@ const handleFileUpload = async (req, res) => {
 
     console.log('Checking csvData length:', csvData.length);
     console.log('CSV Data Type:', typeof csvData);
-console.log('CSV Data Length:', csvData.length);
+    console.log('CSV Data Length:', csvData.length);
+    // Handle PDF file
+    console.log('Saving PDF file to the database...');
+    const pdf = await savePdfToDatabase(pdfFile.originalname, 'pdf', pdfFile.path);
+
+    console.log('PDF saved:', pdf);
 
 
     // Generate PDFs for each user in the database
@@ -42,9 +49,10 @@ console.log('CSV Data Length:', csvData.length);
     }
 
     // Generate PDF previews
-    console.log('Generating PDF previews...');
-    const pdfPreviews = await generatePreview(csvData);
-    console.log('PDF previews generated successfully.');
+// console.log('Generating PDF previews...');
+// const pdfPreviews = await generatePreview(csvData);
+// console.log('PDF previews generated successfully.');
+
 
     // Move uploaded files to the "uploads" directory
     try {
@@ -56,16 +64,16 @@ console.log('CSV Data Length:', csvData.length);
       console.log('File upload completed.');
       res.status(200).json({
         success: true,
-        data: { csvFile: csvFile.originalname, pdfFile: pdfFile.originalname, pdfPreviews }
+        data: { csvFile: csvFile.originalname, pdfFile: pdfFile.originalname}
       });
     } catch (moveError) {
       console.error('Error saving files:', moveError);
-      res.status(500).json({ success: false, error: 'Error saving files' });
+      res.status(500).json({ success: false, error: 'Error saving files' }); 
     }
   } catch (error) {
     console.error('Error handling file upload:', error);
     res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 };
- 
+
 module.exports = { handleFileUpload };

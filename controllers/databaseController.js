@@ -2,6 +2,8 @@ const csvParser = require('csv-parser');
 const fs = require('fs');
 const { promisify } = require('util');
 const User = require('../models/User');
+const Pdf = require('../models/Pdf');
+
 
 const parseCSVAndStoreInDatabase = async (csvFilePath) => {
   try {
@@ -14,7 +16,7 @@ const parseCSVAndStoreInDatabase = async (csvFilePath) => {
     const results = [];
 
     // Use promisified csv-parser
-    const csvRows = await new Promise((resolve, reject) => {
+    const csvRows = await new Promise((resolve, reject) => {  
       const rows = [];
       fs.createReadStream(csvFilePath)
         .pipe(csvParser())
@@ -52,7 +54,23 @@ const parseCSVAndStoreInDatabase = async (csvFilePath) => {
     throw error;
   }
 };
-const updateStatusToProcessed = async (userId, updatedPdfPath) => {
+const savePdfToDatabase = async (filename, fileType, filePath) => {
+  try {
+    const pdf = new Pdf({
+      filename,
+      fileType,
+      filePath
+    });
+    await pdf.save();
+    console.log('PDF saved to database:', pdf);
+    return pdf;
+  } catch (error) {
+    console.error('Error saving PDF to database:', error);
+    throw error;
+  }
+};
+
+const updateStatusToProcessed = async (userId, updatedPdfPath) => { 
   try {
     const user = await User.findByIdAndUpdate(userId, { status: 'processed', pdfPath: updatedPdfPath });
     console.log(`User with ID ${userId} marked as processed with updated PDF path.`);
@@ -73,4 +91,4 @@ const updateUserPdfPath = async (userId, pdfPath) => {
   }
 };
 
-module.exports = { parseCSVAndStoreInDatabase, updateStatusToProcessed, updateUserPdfPath };
+module.exports = { parseCSVAndStoreInDatabase, savePdfToDatabase, updateStatusToProcessed, updateUserPdfPath };
