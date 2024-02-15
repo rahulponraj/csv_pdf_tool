@@ -40,9 +40,9 @@ const parseCSVAndStoreInDatabase = async (csvFilePath) => {
         await user.save();
         results.push(user);
         console.log('User saved:', user);
-      } catch (error) {
+      } catch (error) { 
         console.error('Error saving user to the database:', error);
-      }
+      } 
     }
 
     console.log('CSV parsing and storing in the database done.');

@@ -96,30 +96,30 @@
   </form>
 
   <div id="pdfPreviews"></div>
-
+<iframe src="/pdfs/user_65c5b955f25c631d9dde6ac2.pdf" frameborder="0"></iframe>
   <script>
-    function displayPreviews(pdfUrls) {
-  if (pdfUrls && Array.isArray(pdfUrls)) {
-    const pdfPreviews = document.getElementById('pdfPreviews');
+//     function displayPreviews(pdfUrls) {
+//   if (pdfUrls && Array.isArray(pdfUrls)) {
+//     const pdfPreviews = document.getElementById('pdfPreviews');
 
-    // Clear existing previews
-    pdfPreviews.innerHTML = '';
+//     // Clear existing previews
+//     pdfPreviews.innerHTML = '';
 
-    // Create an iframe for each PDF URL
-    pdfUrls.forEach(pdfUrl => {
-      const iframe = document.createElement('iframe');
-      iframe.src = pdfUrl;
-      iframe.classList.add('pdfPreview');
-      pdfPreviews.appendChild(iframe);
-    });
-  } else {
-    // If pdfUrls is undefined or not an array, display a message indicating no previews available
-    const pdfPreviews = document.getElementById('pdfPreviews');
-    const message = document.createElement('p');
-    message.textContent = 'No PDF previews available';
-    pdfPreviews.appendChild(message);
-  }
-}
+//     // Create an iframe for each PDF URL
+//     pdfUrls.forEach(pdfUrl => {
+//       const iframe = document.createElement('iframe');
+//       iframe.src = pdfUrl;
+//       iframe.classList.add('pdfPreview');
+//       pdfPreviews.appendChild(iframe);
+//     });
+//   } else {
+//     // If pdfUrls is undefined or not an array, display a message indicating no previews available
+//     const pdfPreviews = document.getElementById('pdfPreviews');
+//     const message = document.createElement('p');
+//     message.textContent = 'No PDF previews available';
+//     pdfPreviews.appendChild(message);
+//   }
+// }
 
 
     document.getElementById('uploadForm').addEventListener('submit', async function(event) {

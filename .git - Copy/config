@@ -1,0 +1,13 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	symlinks = false
+	ignorecase = true
+[remote "sharetool"]
+	url = https://github.com/rahulponraj/csv_pdf_tool.git
+	fetch = +refs/heads/*:refs/remotes/sharetool/*
+[branch "secondary"]
+	remote = sharetool
+	merge = refs/heads/secondary
