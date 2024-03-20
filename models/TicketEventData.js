@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const ticketEventDataSchema = new mongoose.Schema({
     csvRow: { type: mongoose.Schema.Types.Mixed }, // Store the CSV row as a JSON object
-    uploadedCsv: { type: mongoose.Schema.Types.ObjectId, ref: 'Csv' }, // Reference to the original CSV file
+    uploadedCsv: { type: mongoose.Schema.Types.ObjectId, ref: 'Csv' },
+    uploadedPdf: { type: mongoose.Schema.Types.ObjectId, ref: 'Pdf' }, // Reference to the original CSV file
     status: { type: String, default: 'pending' },
     generatedPdf: { type: mongoose.Schema.Types.ObjectId, ref: 'GeneratedPdf', default: null },
     message: String, // New field for storing WhatsApp message

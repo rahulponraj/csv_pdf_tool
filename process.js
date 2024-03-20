@@ -10,11 +10,14 @@ const qr = require('qrcode');
 const QRCode = require('./models/QRCode'); // Import the QRCode model
 const { parse } = require('papaparse');
 const Csv = require('./models/Csv');
+const TicketEventData = require('./models/TicketEventData');
 
 
 
 
 
+
+// MongoDB setup
 // MongoDB setup
 mongoose.connect("mongodb+srv://rahulponraj:secretmongo@cluster0.rdefuhv.mongodb.net/", {
   useNewUrlParser: true,
@@ -23,12 +26,18 @@ mongoose.connect("mongodb+srv://rahulponraj:secretmongo@cluster0.rdefuhv.mongodb
     console.log('Connected to MongoDB');
     processPendingCustomers().then(() => {
       console.log('Processing completed');
-      mongoose.connection.close(); // Close the MongoDB connection when processing is completed
+      // Process TicketEventData after processing customers
+      processPendingTicketEventData().then(() => {
+        console.log('Processing completed for TicketEventData');
+        // Close the MongoDB connection when processing is completed for TicketEventData
+        mongoose.connection.close(); 
+      });
     });
   })
   .catch((error) => {
     console.error('Error connecting to MongoDB:', error);
   });
+
 
 async function* getCustomersWithPendingStatus() {
   const customers = await Customer.find({ status: 'pending' }).lean().cursor();
@@ -65,6 +74,107 @@ async function processPendingCustomers() {
   await processNextCustomer();
 }
 
+async function* getTicketEventDataWithPendingStatus() {
+  const ticketEventData = await TicketEventData.find({ status: 'pending' }).lean().cursor();
+  for await (const data of ticketEventData) {
+    yield data;
+  }
+}
+
+async function processPendingTicketEventData() {
+  // Fetch pending TicketEventData
+  const pendingTicketEventDataGenerator = getTicketEventDataWithPendingStatus();
+
+  // Create an async iterator from the generator
+  const iterator = pendingTicketEventDataGenerator[Symbol.asyncIterator]();
+
+  // Process each pending TicketEventData sequentially with a delay
+  async function processNextTicketEventData() {
+    const { value, done } = await iterator.next();
+    if (done) {
+      console.log('Processing TicketEventData completed');
+      return;
+    }
+
+    // Process TicketEventData...
+    await processTicketEventData(value);
+
+    // Add a delay of 5 seconds before processing the next TicketEventData
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Process the next TicketEventData
+    await processNextTicketEventData();
+  }
+
+  // Start processing the first TicketEventData
+  await processNextTicketEventData();
+}
+let currentIndex = 0; // Initialize the current index
+
+const processTicketEventData = async (ticketdata) => {
+  try {
+    // Fetch the uploaded PDF template from the database based on the ObjectId stored in ticketeventdata.uploadedPdf
+    const uploadedPdf = await Pdf.findById(ticketdata.uploadedPdf);
+    if (!uploadedPdf) {
+      console.error('Uploaded PDF template not found');
+      return; // Stop processing if uploaded PDF template is not found
+    }
+    // Fetch the uploaded CSV template from the database based on the ObjectId stored in ticketeventdata.uploadedCsv
+    const uploadedCsv = await Csv.findById(ticketdata.uploadedCsv);
+    if (!uploadedCsv) {
+      console.error('Uploaded CSV template not found');
+      return; // Stop processing if uploaded CSV template is not found
+    }
+    // Create a directory named "generated_pdfs/ticketeventdata_pdfs" if it doesn't exist
+    const generatedPdfDir = path.join(__dirname, '.', 'generated_pdfs', 'ticketeventdata_pdfs');
+    await fs.mkdir(generatedPdfDir, { recursive: true });
+
+    // Read the CSV file content from the database
+    const csvFileContent = await fs.readFile(uploadedCsv.filePath, 'utf-8');
+
+    // Parse the CSV file content
+    const { data } = parse(csvFileContent, { header: true });
+
+    // Get the current row to process
+    const customerRow = data[currentIndex];
+
+    // Load the uploaded PDF template for the customer
+    const pdfBuffer = await fs.readFile(uploadedPdf.filePath);
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const form = pdfDoc.getForm();
+
+    // Get the headers from the CSV file
+    const headers = Object.keys(data[0]);
+
+    // Process the current row of data
+    fillPdfFieldsWithRowValues(form, headers, customerRow);
+
+    // Save the modified PDF for the customer
+    const filledPdfBytes = await pdfDoc.save();
+    const outputPdfPath = path.join(generatedPdfDir, `ticket_${ticketdata._id}.pdf`);
+    await fs.writeFile(outputPdfPath, filledPdfBytes);
+
+    // Increment the current index for the next iteration
+    currentIndex++;
+  } catch (error) {
+    console.error('Error processing TicketEventData:', error);
+  }
+};
+
+// Helper function to fill PDF fields with row values
+function fillPdfFieldsWithRowValues(form, headers, customerRow) {
+  headers.forEach((header, index) => {
+    const headerField = form.getTextField(`[header${index + 1}]`);
+    const valueField = form.getTextField(`[value${index + 1}]`);
+
+    // Fill PDF fields
+    headerField.setText(header);
+    valueField.setText(customerRow[header]);
+  });
+}
+
+
+
 const generateQRCode = async (customer) => {
   try {
     const text = `Customer ID: ${customer._id}`;
@@ -88,24 +198,6 @@ const generateQRCode = async (customer) => {
   }
 };
 
-// const generateQRCodeForCustomer = async (customer) => {
-//   try {
-//     // Generate QR code
-//     const qrCodePath = await generateQRCode(customer);
-
-//     // Save the QR code path to the QRCode collection
-//     const qrCode = new QRCode({ customerId: customer._id, qrCodePath });
-//     await qrCode.save();
-
-//     // Update the customer's qrCode field with the QR code ID
-//     await Customer.findOneAndUpdate({ _id: customer._id }, { qrCode: qrCode._id });
-
-//     console.log(`QR code generated and saved for customer with ID: ${customer._id}`);
-//   } catch (error) {
-//     console.error('Error generating QR code:', error);
-//     throw error;
-//   }
-// };
 
 const generatePDFForCustomer = async (customer) => {
   try {
@@ -140,7 +232,7 @@ const generatePDFForCustomer = async (customer) => {
 
 // Check if the customer's row is found
 if (customerRow) {
-  // Load the PDF template for the customer
+  
     // Load the uploaded PDF template for the customer
     const pdfBuffer = await fs.readFile(uploadedPdf.filePath);
     const pdfDoc = await PDFDocument.load(pdfBuffer);

@@ -5,7 +5,7 @@ const User = require('../models/Customer');
 const Pdf = require('../models/Pdf');
 const Csv = require('../models/Csv');
 const path = require('path');
-
+const TicketEventData = require('../models/TicketEventData');
 
 
 const parseCSVAndStoreInDatabase = async (csvFilePath,pdfFilename, pdfFileType, pdfFilePath) => {
@@ -35,14 +35,25 @@ const parseCSVAndStoreInDatabase = async (csvFilePath,pdfFilename, pdfFileType, 
 
     const results = [];
 
-     // Use promisified csv-parser
-     const csvRows = await new Promise((resolve, reject) => {  
+    const csvRows = await new Promise((resolve, reject) => {
       const rows = [];
+      let headers = null;
+    
       fs.createReadStream(csvFilePath)
         .pipe(csvParser())
+        .on('headers', (h) => {
+          headers = h;
+        })
         .on('data', (data) => {
-          console.log('CSV Data:', data);
-          rows.push(data);
+          const rowData = {};
+    
+          // Ensure all headers are included in the data object, even if they are empty
+          headers.forEach((header) => {
+            rowData[header] = data[header] || '';
+          });
+    
+          console.log('CSV Data:', rowData);
+          rows.push(rowData);
         })
         .on('end', () => resolve(rows))
         .on('error', reject);
@@ -54,27 +65,34 @@ const parseCSVAndStoreInDatabase = async (csvFilePath,pdfFilename, pdfFileType, 
     // Process each row
     for (const data of csvRows) {
       try {
-        // Check if Name and MobileNumber fields exist in the data
-        if (!data.Name || !data.MobileNumber) {
-          console.error('Name or MobileNumber is missing in CSV data:', data);
-          continue; // Skip this row and proceed to the next one
+        if (data.Name && data.MobileNumber) {
+          // 'Name' and 'MobileNumber' fields exist, save in Customer model
+          const user = new User({
+            name: data.Name,
+            mobileNumber: data.MobileNumber,
+            status: 'pending',
+            uploadedPdf: pdfObjectId,
+            uploadedCsv: csv._id,
+          });
+          await user.save();
+          results.push(user);
+          console.log('User saved:', user);
+        } else {
+          // 'Name' or 'MobileNumber' is missing, save in new collection 'TicketEventData'
+          const ticketEventData = new TicketEventData({
+            csvRow: data,
+            uploadedCsv: csv._id,
+            uploadedPdf: pdfObjectId,
+            status: 'pending', // You can set a default status here if needed
+          });
+          await ticketEventData.save();
+          console.log('TicketEventData saved:', ticketEventData); 
         }
-    
-        const user = new User({
-          name: data.Name,
-          mobileNumber: data.MobileNumber,
-          status: 'pending',
-          uploadedPdf: pdfObjectId,
-          uploadedCsv: csv._id,
-        });
-
-        await user.save();
-        results.push(user);
-        console.log('User saved:', user);
       } catch (error) { 
-        console.error('Error saving user to the database:', error);
+        console.error('Error saving user or TicketEventData:', error);
       } 
     }
+    
 // Add a timestamp to the newly uploaded customers
 const timestamp = new Date();
 const updatedResults = results.map(customer => ({ ...customer, timestamp }));
