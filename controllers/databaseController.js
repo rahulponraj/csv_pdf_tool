@@ -35,8 +35,8 @@ const parseCSVAndStoreInDatabase = async (csvFilePath,pdfFilename, pdfFileType, 
 
     const results = [];
 
-    // Use promisified csv-parser
-    const csvRows = await new Promise((resolve, reject) => {  
+     // Use promisified csv-parser
+     const csvRows = await new Promise((resolve, reject) => {  
       const rows = [];
       fs.createReadStream(csvFilePath)
         .pipe(csvParser())
@@ -54,11 +54,18 @@ const parseCSVAndStoreInDatabase = async (csvFilePath,pdfFilename, pdfFileType, 
     // Process each row
     for (const data of csvRows) {
       try {
+        // Check if Name and MobileNumber fields exist in the data
+        if (!data.Name || !data.MobileNumber) {
+          console.error('Name or MobileNumber is missing in CSV data:', data);
+          continue; // Skip this row and proceed to the next one
+        }
+    
         const user = new User({
-          name: data.name,
-          mobileNumber: data.mobileNumber,
+          name: data.Name,
+          mobileNumber: data.MobileNumber,
           status: 'pending',
           uploadedPdf: pdfObjectId,
+          uploadedCsv: csv._id,
         });
 
         await user.save();

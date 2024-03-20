@@ -8,6 +8,9 @@ const fontkit = require('@pdf-lib/fontkit');
 const generatedPdf = require('./models/GeneratedPdf');
 const qr = require('qrcode');
 const QRCode = require('./models/QRCode'); // Import the QRCode model
+const { parse } = require('papaparse');
+const Csv = require('./models/Csv');
+
 
 
 
@@ -114,54 +117,49 @@ const generatePDFForCustomer = async (customer) => {
       console.error('Uploaded PDF template not found for customer:', customer.name);
       return; // Stop processing if uploaded PDF template is not found
     }
+    // Fetch the uploaded CSV template from the database based on the ObjectId stored in customer.uploadedCsv
+    const uploadedCsv = await Csv.findById(customer.uploadedCsv);
+    if (!uploadedCsv) {
+      console.error('Uploaded CSV template not found for customer:', customer.name);
+      return; // Stop processing if uploaded CSV template is not found
+    }
+
 
     // Create a directory named "generated_pdfs" if it doesn't exist
     const generatedPdfDir = path.join(__dirname, '.', 'generated_pdfs');
     await fs.mkdir(generatedPdfDir, { recursive: true });
 
+    // Read the CSV file content from the database
+    const csvFileContent = await fs.readFile(uploadedCsv.filePath, 'utf-8');
+
+    // Parse the CSV file content
+    const { data } = parse(csvFileContent, { header: true });
+
+    // Find the row corresponding to the current customer
+    const customerRow = data.find((row) => row.Name === customer.name);
+
+// Check if the customer's row is found
+if (customerRow) {
+  // Load the PDF template for the customer
     // Load the uploaded PDF template for the customer
     const pdfBuffer = await fs.readFile(uploadedPdf.filePath);
     const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const form = pdfDoc.getForm();
+// Fill PDF fields with the customer's row values
+Object.keys(customerRow).forEach((header, index) => {
+  const headerField = form.getTextField(`[header${index + 1}]`);
+  const valueField = form.getTextField(`[value${index + 1}]`);
 
+  // Fill PDF fields
+  headerField.setText(header);
+  valueField.setText(customerRow[header]);
+});
     // Register fontkit
     pdfDoc.registerFontkit(fontkit);
-
-    // Customize the PDF template with customer data
-    const { name, mobileNumber } = customer;
-
-    // Set the font and size for the text
-    const fontBytes = await fs.readFile('./fonts/BarlowCondensed-Medium.ttf'); // Replace with the actual path to the font file
-    const font = await pdfDoc.embedFont(fontBytes);
-
-    // Set the position for the name and mobile number
-    const nameX = 35;
-    const nameY = 275;
-    const mobileNumberX = 35; 
-    const mobileNumberY = 63;
 
     // Get the first page of the PDF
     const page = pdfDoc.getPage(0);
 
-    // Draw a white rectangle behind the text
-    const { width, height } = page.getSize(); 
-    page.drawRectangle({
-      x: nameX,
-      y: nameY, // Invert the Y coordinate to match PDF coordinates
-      width: 150, // Adjust the width as needed
-      height: 13, // Adjust the height as needed
-      color: rgb(1, 1, 1), // White color
-      //   borderColor: null, // No border 
-      borderWidth: 0, // No border 
-    });
-    // Draw a white rectangle behind the mobile number
-    page.drawRectangle({
-      x: mobileNumberX,
-      y: mobileNumberY, // Invert the Y coordinate to match PDF coordinates
-      width: 150, // Adjust the width as needed
-      height: 12, // Adjust the height as needed
-      color: rgb(1, 1, 1), // White color
-      borderWidth: 0, // No border  
-    });
 
     // Draw a white rectangle behind for image insertion
     page.drawRectangle({
@@ -186,10 +184,7 @@ const generatePDFForCustomer = async (customer) => {
       height: 82,
     });
 
-    // Draw the text on the page
-    page.drawText(name, { x: nameX, y: nameY, font, size: 14, color: rgb(0, 0, 0) });
-    page.drawText(mobileNumber, { x: mobileNumberX, y: mobileNumberY, font, size: 14, color: rgb(0, 0, 0) });
-
+    
     // Save the generated PDF in the "generated_pdfs" folder with a unique filename for each customer
     const currentDate = new Date();
     const formattedDate = currentDate.toISOString().replace(/:/g, "-").replace(/\..+/, "");
@@ -206,12 +201,15 @@ const generatePDFForCustomer = async (customer) => {
       // Save the PDF content here if needed
     });
     const savedPdf = await pdfRecord.save();
-
+  
     // Update the customer document with the ObjectId of the generated PDF
     await Customer.findByIdAndUpdate(customer._id, { generatedPdf: savedPdf._id });
     // Update customer status to 'processed' and store the path
     await updateStatusToProcessed(customer._id, customerPdfPath);
     console.log(`Generated PDF for customer: ${customer.name}`);
+  } else {
+    console.error('Customer row not found for customer:', customer.name);
+  }
   } catch (error) {
     console.error(`Error generating PDF for customer: ${customer.name}`, error);
     // Consider how you want to handle errors
@@ -223,8 +221,7 @@ const updateStatusToProcessed = async (userId, updatedPdfPath) => {
     console.log(`User with ID ${userId} marked as processed with updated PDF path.`);
     return user;
   } catch (error) {
-    console.error('Error updating user status:', error);
+    console.error('Error updating user status:', error); 
     throw error;
   }
 };
-

@@ -4,6 +4,7 @@ const customerSchema = new mongoose.Schema({
     name: String,
     mobileNumber: String,
     status: { type: String, default: 'pending' },
+    uploadedCsv: { type: mongoose.Schema.Types.ObjectId, ref: 'Csv' },
     uploadedPdf: { type: mongoose.Schema.Types.ObjectId, ref: 'Pdf' },
     generatedPdf: { type: mongoose.Schema.Types.ObjectId, ref: 'GeneratedPdf', default: null },
     message: String, // New field for storing WhatsApp message

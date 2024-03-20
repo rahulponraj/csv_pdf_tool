@@ -107,7 +107,7 @@ app.post('/upload', upload.fields([{ name: 'csv', maxCount: 1 }, { name: 'pdf', 
     res.render('main');
     
   });
-  app.get('/files', tableController.renderTable);
+  app.get('/files', tableController.renderTable); 
  
 // Serve files from the '/uploads' directory 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
