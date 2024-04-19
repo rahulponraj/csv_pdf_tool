@@ -11,13 +11,13 @@ const QRCode = require('./models/QRCode'); // Import the QRCode model
 const { parse } = require('papaparse');
 const Csv = require('./models/Csv');
 const TicketEventData = require('./models/TicketEventData');
+const GeneratedEventPdf = require('./models/GeneratedEventPdf');
 
 
 
 
 
 
-// MongoDB setup
 // MongoDB setup
 mongoose.connect("mongodb+srv://rahulponraj:secretmongo@cluster0.rdefuhv.mongodb.net/", {
   useNewUrlParser: true,
@@ -30,7 +30,7 @@ mongoose.connect("mongodb+srv://rahulponraj:secretmongo@cluster0.rdefuhv.mongodb
       processPendingTicketEventData().then(() => {
         console.log('Processing completed for TicketEventData');
         // Close the MongoDB connection when processing is completed for TicketEventData
-        mongoose.connection.close(); 
+        mongoose.connection.close();
       });
     });
   })
@@ -154,6 +154,15 @@ const processTicketEventData = async (ticketdata) => {
     const outputPdfPath = path.join(generatedPdfDir, `ticket_${ticketdata._id}.pdf`);
     await fs.writeFile(outputPdfPath, filledPdfBytes);
 
+    // Save the file path in the database
+    const generatedEventPdf = new GeneratedEventPdf({
+      ticket_event: ticketdata._id,
+      filename: `ticket_${ticketdata._id}.pdf`,
+      filetype: 'pdf',
+      filepath: outputPdfPath
+    });
+    await generatedEventPdf.save();
+
     // Increment the current index for the next iteration
     currentIndex++;
   } catch (error) {
@@ -230,78 +239,78 @@ const generatePDFForCustomer = async (customer) => {
     // Find the row corresponding to the current customer
     const customerRow = data.find((row) => row.Name === customer.name);
 
-// Check if the customer's row is found
-if (customerRow) {
-  
-    // Load the uploaded PDF template for the customer
-    const pdfBuffer = await fs.readFile(uploadedPdf.filePath);
-    const pdfDoc = await PDFDocument.load(pdfBuffer);
-    const form = pdfDoc.getForm();
-// Fill PDF fields with the customer's row values
-Object.keys(customerRow).forEach((header, index) => {
-  const headerField = form.getTextField(`[header${index + 1}]`);
-  const valueField = form.getTextField(`[value${index + 1}]`);
+    // Check if the customer's row is found
+    if (customerRow) {
 
-  // Fill PDF fields
-  headerField.setText(header);
-  valueField.setText(customerRow[header]);
-});
-    // Register fontkit
-    pdfDoc.registerFontkit(fontkit);
+      // Load the uploaded PDF template for the customer
+      const pdfBuffer = await fs.readFile(uploadedPdf.filePath);
+      const pdfDoc = await PDFDocument.load(pdfBuffer);
+      const form = pdfDoc.getForm();
+      // Fill PDF fields with the customer's row values
+      Object.keys(customerRow).forEach((header, index) => {
+        const headerField = form.getTextField(`[header${index + 1}]`);
+        const valueField = form.getTextField(`[value${index + 1}]`);
 
-    // Get the first page of the PDF
-    const page = pdfDoc.getPage(0);
+        // Fill PDF fields
+        headerField.setText(header);
+        valueField.setText(customerRow[header]);
+      });
+      // Register fontkit
+      pdfDoc.registerFontkit(fontkit);
+
+      // Get the first page of the PDF
+      const page = pdfDoc.getPage(0);
 
 
-    // Draw a white rectangle behind for image insertion
-    page.drawRectangle({
-      x: 221,
-      y: 222, // Invert the Y coordinate to match PDF coordinates
-      width: 83, // Adjust the width as needed
-      height: 82, // Adjust the height as needed
-      color: rgb(1, 1, 1), // White color 
-      borderWidth: 0, // No border          
-      // roundedCorner: { radius: 50 } // Radius to round the corners
-    });
-    // Generate QR code for the customer
-    const qrCodePath = await generateQRCode(customer);
-    const qrCodeBytes = await fs.readFile(qrCodePath);
-    const qrCodeImage = await pdfDoc.embedPng(qrCodeBytes);
+      // Draw a white rectangle behind for image insertion
+      page.drawRectangle({
+        x: 221,
+        y: 222, // Invert the Y coordinate to match PDF coordinates
+        width: 83, // Adjust the width as needed
+        height: 82, // Adjust the height as needed
+        color: rgb(1, 1, 1), // White color 
+        borderWidth: 0, // No border          
+        // roundedCorner: { radius: 50 } // Radius to round the corners
+      });
+      // Generate QR code for the customer
+      const qrCodePath = await generateQRCode(customer);
+      const qrCodeBytes = await fs.readFile(qrCodePath);
+      const qrCodeImage = await pdfDoc.embedPng(qrCodeBytes);
 
-    // Draw the QR code on the page
-    page.drawImage(qrCodeImage, {
-      x: 221,
-      y: 222,
-      width: 83,
-      height: 82,
-    });
+      // Draw the QR code on the page
+      page.drawImage(qrCodeImage, {
+        x: 221,
+        y: 222,
+        width: 83,
+        height: 82,
+      });
 
-    
-    // Save the generated PDF in the "generated_pdfs" folder with a unique filename for each customer
-    const currentDate = new Date();
-    const formattedDate = currentDate.toISOString().replace(/:/g, "-").replace(/\..+/, "");
-    const filename = `customer_${customer.name}_${formattedDate}.pdf`;
-    const customerPdfPath = path.join(generatedPdfDir, filename);
-    await fs.writeFile(customerPdfPath, await pdfDoc.save());
 
-    // Save the generated PDF to the database
-    const pdfRecord = new generatedPdf({
-      customer: customer._id,
-      filename: filename,
-      fileType: 'pdf',
-      filePath: customerPdfPath,
-      // Save the PDF content here if needed
-    });
-    const savedPdf = await pdfRecord.save();
-  
-    // Update the customer document with the ObjectId of the generated PDF
-    await Customer.findByIdAndUpdate(customer._id, { generatedPdf: savedPdf._id });
-    // Update customer status to 'processed' and store the path
-    await updateStatusToProcessed(customer._id, customerPdfPath);
-    console.log(`Generated PDF for customer: ${customer.name}`);
-  } else {
-    console.error('Customer row not found for customer:', customer.name);
-  }
+      // Save the generated PDF in the "generated_pdfs" folder with a unique filename for each customer
+      const currentDate = new Date();
+      const formattedDate = currentDate.toISOString().replace(/:/g, "-").replace(/\..+/, "");
+      const filename = `customer_${customer.name}_${formattedDate}.pdf`;
+      const customerPdfPath = path.join(generatedPdfDir, filename);
+      await fs.writeFile(customerPdfPath, await pdfDoc.save());
+
+      // Save the generated PDF to the database
+      const pdfRecord = new generatedPdf({
+        customer: customer._id,
+        filename: filename,
+        fileType: 'pdf',
+        filePath: customerPdfPath,
+        // Save the PDF content here if needed
+      });
+      const savedPdf = await pdfRecord.save();
+
+      // Update the customer document with the ObjectId of the generated PDF
+      await Customer.findByIdAndUpdate(customer._id, { generatedPdf: savedPdf._id });
+      // Update customer status to 'processed' and store the path
+      await updateStatusToProcessed(customer._id, customerPdfPath);
+      console.log(`Generated PDF for customer: ${customer.name}`);
+    } else {
+      console.error('Customer row not found for customer:', customer.name);
+    }
   } catch (error) {
     console.error(`Error generating PDF for customer: ${customer.name}`, error);
     // Consider how you want to handle errors
@@ -313,7 +322,7 @@ const updateStatusToProcessed = async (userId, updatedPdfPath) => {
     console.log(`User with ID ${userId} marked as processed with updated PDF path.`);
     return user;
   } catch (error) {
-    console.error('Error updating user status:', error); 
+    console.error('Error updating user status:', error);
     throw error;
   }
 };

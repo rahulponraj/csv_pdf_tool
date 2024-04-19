@@ -477,7 +477,7 @@ strong {
 
 @media  screen and (min-width: 991px) {
   .hero {
-    height: 60vh;
+    /* height: 60vh; */
   }
 }
 
@@ -578,7 +578,7 @@ input[type="file"] {
   }
 
   .hero-image {
-    min-width: 650px;
+    /* min-width: 650px; */
   }
   
   .hero-title,

@@ -80,18 +80,6 @@ app.post('/upload', upload.fields([{ name: 'csv', maxCount: 1 }, { name: 'pdf', 
     console.log('CSV Data Type:', typeof csvData);
     console.log('CSV Data Length:', csvData.length);
     console.log('File Upload Completed');
-
-    // // Fetch pending customers
-    // const pendingCustomerGenerator = getCustomersWithPendingStatus();
-
-    // // Process each pending customer sequentially with a delay
-    // for await (const customer of pendingCustomerGenerator) {
-    //   // Process customer...
-    //   await generatePDFForCustomer(customer);
-      
-    //   // Add a delay of 5 seconds before processing the next customer
-    //   await new Promise(resolve => setTimeout(resolve, 2000));
-    // }
     res.status(200).json({
       success: true,
       data: { csvFile: csvFile.originalname, pdfFile: pdfFile.originalname }
@@ -111,103 +99,6 @@ app.post('/upload', upload.fields([{ name: 'csv', maxCount: 1 }, { name: 'pdf', 
  
 // Serve files from the '/uploads' directory 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-
-
-// const getCustomersWithPendingStatus = async function* () {
-//   try {
-//     const customers = await Customer.find({ status: 'pending' });
-//     console.log('pending customers:', customers);
-
-//     for (const customer of customers) {
-//       yield customer;
-//     }
-//   } catch (error) {
-//     console.error('Error fetching customers with pending status:', error);
-//     throw error;
-//   }
-// };
-
-
-// const generatePDFForCustomer = async (customer) => {
-//   try {
-//     console.log(`Generating PDF for customer: ${customer.name}`);
-
-//     // Fetch the uploaded PDF template from the database based on the ObjectId stored in customer.uploadedPdf
-//     const uploadedPdf = await Pdf.findById(customer.uploadedPdf);
-//     if (!uploadedPdf) {
-//       console.error('Uploaded PDF template not found for customer:', customer.name);
-//       return; // Stop processing if uploaded PDF template is not found
-//     }
-
-//     // Create a directory named "generated_pdfs" if it doesn't exist
-//     const generatedPdfDir = path.join(__dirname, '.', 'generated_pdfs');
-//     await fs.mkdir(generatedPdfDir, { recursive: true });
-
-//     // Load the uploaded PDF template for the customer
-//     const pdfBuffer = await fs.readFile(uploadedPdf.filePath);
-//     const pdfDoc = await PDFDocument.load(pdfBuffer);
-
-//     // Register fontkit
-//     pdfDoc.registerFontkit(fontkit);
-
-//     // Customize the PDF template with customer data
-//     const { name, mobileNumber } = customer;
-
-//     // Set the font and size for the text
-//     const fontBytes = await fs.readFile('./fonts/BarlowCondensed-Bold.ttf'); // Replace with the actual path to the font file
-//     const font = await pdfDoc.embedFont(fontBytes);
-
-// // Set the position for the name and mobile number
-// const nameX = 35;
-// const nameY = 275;
-// const mobileNumberX = 35;
-// const mobileNumberY = 63;
-
-// // Get the first page of the PDF
-// const page = pdfDoc.getPage(0);
-
-// // Draw the text on the page
-// page.drawText(name, { x: nameX, y: nameY, font, size: 14, color: rgb(0, 0, 0) });
-// page.drawText(mobileNumber, { x: mobileNumberX, y: mobileNumberY, font, size: 14, color: rgb(0, 0, 0) });
-
-//     // Save the generated PDF in the "generated_pdfs" folder with a unique filename for each customer
-//     const currentDate = new Date();
-//     const formattedDate = currentDate.toISOString().replace(/:/g, "-").replace(/\..+/, "");
-//     const filename = `customer_${customer.name}_${formattedDate}.pdf`;
-//     const customerPdfPath = path.join(generatedPdfDir, filename);
-//     await fs.writeFile(customerPdfPath, await pdfDoc.save());
-
-//     // Save the generated PDF to the database
-//     const pdfRecord = new generatedPdf({
-//       customer: customer._id,
-//       filename: filename,
-//       fileType: 'pdf',
-//       filePath: customerPdfPath,
-//       // Save the PDF content here if needed
-//     });
-//     const savedPdf = await pdfRecord.save();
-
-//     // Update the customer document with the ObjectId of the generated PDF
-//     await Customer.findByIdAndUpdate(customer._id, { generatedPdf: savedPdf._id });
-//     // Update customer status to 'processed' and store the path
-//     await updateStatusToProcessed(customer._id, customerPdfPath);
-//     console.log(`Generated PDF for customer: ${customer.name}`);
-//   } catch (error) {
-//     console.error(`Error generating PDF for customer: ${customer.name}`, error);
-//     // Consider how you want to handle errors
-//   }
-// };
-// const updateStatusToProcessed = async (userId, updatedPdfPath) => { 
-//   try {
-//     const user = await Customer.findByIdAndUpdate(userId, { status: 'processed', pdfPath: updatedPdfPath });
-//     console.log(`User with ID ${userId} marked as processed with updated PDF path.`);
-//     return user;
-//   } catch (error) {
-//     console.error('Error updating user status:', error);
-//     throw error;
-//   }
-// };
 // Serve static files from the 'generated_pdfs' folder
 app.use('/pdfs', express.static(path.join(__dirname, 'generated_pdfs')));
 // Define a route handler for serving PDF files
